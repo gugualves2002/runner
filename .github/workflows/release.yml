@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write # OBRIGATÓRIO: Permite que o Cosign gere certificados OIDC baseados na identidade do GitHub
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - run: go vet ./...
+      - run: go test ./...
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.5.0 # Instala o Cosign no runner
+      
+      - run: mkdir -p dist
+
+      - name: Build with Version Injection
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: |
+          LDFLAGS="-X main.version=${TAG_VERSION}"
+          GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o dist/assinatura-${TAG_VERSION}-linux-amd64 ./cmd/assinatura
+          GOOS=windows GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o dist/assinatura-${TAG_VERSION}-windows-amd64.exe ./cmd/assinatura
+          GOOS=darwin GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o dist/assinatura-${TAG_VERSION}-macos-amd64 ./cmd/assinatura
+          
+          cd dist
+          # Gera o SHA256 apenas para os arquivos binários (assinatura-*)
+          sha256sum assinatura-* > checksums.txt
+
+      - name: Sign Artefacts with Cosign
+        run: |
+          cd dist
+          # O laço itera sobre cada binário gerado e cria os arquivos .sig e .pem
+          for file in assinatura-*; do
+            cosign sign-blob --yes --output-signature ${file}.sig --output-certificate ${file}.pem ${file}
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist
+          
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
