@@ -19,19 +19,15 @@ var startCmd = &cobra.Command{
 	Run:   runStart,
 }
 
-var (
-	port    int
-	jarPath string
-	timeout int
-)
-
 func init() {
-	startCmd.Flags().IntVarP(&port, "port", "p", 7070, "Porta para o servidor escutar")
-	startCmd.Flags().StringVar(&jarPath, "jar", "assinador.jar", "Caminho para o arquivo assinador.jar")
-	startCmd.Flags().IntVar(&timeout, "timeout", 30, "Tempo em minutos para desligamento automático por inatividade (0 para desativar)")
+	// Flags específicas para o comando start
+	startCmd.Flags().IntP("port", "p", 7070, "Porta para o servidor escutar")
+	startCmd.Flags().String("jar", "assinador.jar", "Caminho para o arquivo assinador.jar")
+	startCmd.Flags().Int("timeout", 30, "Tempo em minutos para desligamento automático por inatividade (0 para desativar)")
 }
 
 func runStart(cmd *cobra.Command, args []string) {
+	port, _ := cmd.Flags().GetInt("port")
 	// US-01.7: Detectar instância em execução
 	if isServerRunning(port) {
 		fmt.Printf("Servidor já está em execução na porta %d.\n", port)
@@ -40,6 +36,9 @@ func runStart(cmd *cobra.Command, args []string) {
 
 	// US-01.5: Iniciar assinador.jar no modo servidor
 	fmt.Printf("Iniciando servidor na porta %d...\n", port)
+
+	jarPath, _ := cmd.Flags().GetString("jar")
+	timeout, _ := cmd.Flags().GetInt("timeout")
 
 	// Constrói os argumentos para o java -jar
 	javaArgs := []string{

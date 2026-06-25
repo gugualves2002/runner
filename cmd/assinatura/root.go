@@ -22,7 +22,8 @@ func Execute() {
 }
 
 func init() {
-	// Adiciona comandos aqui
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(signCmd)
+	rootCmd.AddCommand(validateCmd)
 }
