@@ -126,7 +126,7 @@ func (m *Manager) findJavaExecutable(searchDir string) (string, error) {
 
 
 func (m *Manager) downloadAndInstallJDK(targetDir string) error {
-	downloadURL := m.getDownloadURL()
+	downloadURL := m.getDownloadURLFunc()
 	if downloadURL == "" {
 		return fmt.Errorf("plataforma não suportada para download automático de JDK (%s/%s)", runtime.GOOS, runtime.GOARCH)
 	}
@@ -177,7 +177,7 @@ func (m *Manager) downloadAndInstallJDK(targetDir string) error {
 	return nil
 }
 
-func (m *Manager) getDownloadURL() string {
+func (m *Manager) defaultGetDownloadURL() string {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 	baseURL := "https://api.adoptium.net/v3/binary/latest/21/ga"
