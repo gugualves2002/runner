@@ -54,7 +54,7 @@ func TestEnsureJDK_Download(t *testing.T) {
 	// 3. Executa a função
 	manager := NewManager("21")
 	// Sobrescreve a função que retorna a URL para apontar para nosso servidor de teste
-	manager.getDownloadURL = func() string { return ts.URL }
+	manager.getDownloadURLFunc = func() string { return ts.URL }
 
 	err := manager.EnsureJDK()
 	if err != nil {
