@@ -39,19 +39,25 @@ func stopServer(p int) error {
 
 	process, err := os.FindProcess(pid)
 	if err != nil {
+		pidFile, _ := getPIDFilePath(p)
 		// Processo não encontrado, talvez já tenha sido encerrado. Limpar o arquivo de PID.
-		os.Remove(getPIDFilePath(p))
+		if pidFile != "" {
+			os.Remove(pidFile)
+		}
 		return fmt.Errorf("processo com PID %d não encontrado: %w", pid, err)
 	}
 
+	pidFile, _ := getPIDFilePath(p) // Get before killing
 	if err := process.Kill(); err != nil {
 		// Mesmo com erro, tenta limpar o arquivo de PID
-		os.Remove(getPIDFilePath(p))
+		if pidFile != "" {
+			os.Remove(pidFile)
+		}
 		return fmt.Errorf("falha ao encerrar processo com PID %d: %w", pid, err)
 	}
 
 	// Limpa o arquivo de PID após o sucesso
-	if err := os.Remove(getPIDFilePath(p)); err != nil {
+	if pidFile != "" && os.Remove(pidFile) != nil {
 		return fmt.Errorf("processo encerrado, mas falha ao limpar arquivo de PID: %w", err)
 	}
 

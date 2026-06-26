@@ -53,10 +53,25 @@ func runStart(cmd *cobra.Command, args []string) {
 	command := exec.Command("java", javaArgs...)
 
 	// Redireciona a saída para arquivos de log para não poluir o terminal
-	logDir := getConfigDir()
-	os.MkdirAll(logDir, 0755)
-	stdout, _ := os.Create(filepath.Join(logDir, fmt.Sprintf("assinador-%d.log", port)))
-	stderr, _ := os.Create(filepath.Join(logDir, fmt.Sprintf("assinador-%d.err", port)))
+	logDir, err := getConfigDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Erro fatal: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Erro ao criar diretório de log: %v\n", err)
+		os.Exit(1)
+	}
+
+	stdout, err := os.Create(filepath.Join(logDir, fmt.Sprintf("assinador-%d.log", port)))
+	if err != nil {
+		// Non-fatal, just print a warning
+		fmt.Fprintf(os.Stderr, "Aviso: não foi possível criar o arquivo de log (stdout): %v\n", err)
+	}
+	stderr, err := os.Create(filepath.Join(logDir, fmt.Sprintf("assinador-%d.err", port)))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Aviso: não foi possível criar o arquivo de log (stderr): %v\n", err)
+	}
 	command.Stdout = stdout
 	command.Stderr = stderr
 
@@ -95,6 +110,12 @@ func runStart(cmd *cobra.Command, args []string) {
 }
 
 func isServerRunning(p int) bool {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/health", p))
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+	resp, err := client.Get(fmt.Sprintf("http://localhost:%d/api/health", p))
+	if err == nil {
+		defer resp.Body.Close()
+	}
 	return err == nil && resp.StatusCode == http.StatusOK
 }
