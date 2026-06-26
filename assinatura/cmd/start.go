@@ -27,7 +27,8 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) {
-	port, _ := cmd.Flags().GetInt("port")
+	port, err := cmd.Flags().GetInt("port")
+	exitOnError(err)
 	// US-01.7: Detectar instância em execução
 	if isServerRunning(port) {
 		fmt.Printf("Servidor já está em execução na porta %d.\n", port)
@@ -37,8 +38,10 @@ func runStart(cmd *cobra.Command, args []string) {
 	// US-01.5: Iniciar assinador.jar no modo servidor
 	fmt.Printf("Iniciando servidor na porta %d...\n", port)
 
-	jarPath, _ := cmd.Flags().GetString("jar")
-	timeout, _ := cmd.Flags().GetInt("timeout")
+	jarPath, err := cmd.Flags().GetString("jar")
+	exitOnError(err)
+	timeout, err := cmd.Flags().GetInt("timeout")
+	exitOnError(err)
 
 	// Constrói os argumentos para o java -jar
 	javaArgs := []string{

@@ -24,10 +24,14 @@ func init() {
 }
 
 func runSign(cmd *cobra.Command, args []string) {
-	port, _ := cmd.Flags().GetInt("port")
-	pkcs11Config, _ := cmd.Flags().GetString("pkcs11-config")
-	pin, _ := cmd.Flags().GetString("pin")
-	alias, _ := cmd.Flags().GetString("alias")
+	port, err := cmd.Flags().GetInt("port")
+	exitOnError(err)
+	pkcs11Config, err := cmd.Flags().GetString("pkcs11-config")
+	exitOnError(err)
+	pin, err := cmd.Flags().GetString("pin")
+	exitOnError(err)
+	alias, err := cmd.Flags().GetString("alias")
+	exitOnError(err)
 
 	requestPayload := struct {
 		Data             string `json:"data"`

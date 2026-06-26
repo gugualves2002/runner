@@ -19,7 +19,8 @@ func init() {
 }
 
 func runStop(cmd *cobra.Command, args []string) {
-	port, _ := cmd.Flags().GetInt("port")
+	port, err := cmd.Flags().GetInt("port")
+	exitOnError(err)
 	// US-01.8: Interromper execução do assinador.jar
 	if err := stopServer(port); err != nil {
 		fmt.Fprintf(os.Stderr, "Erro ao parar o servidor na porta %d: %v\n", port, err)
@@ -30,6 +31,10 @@ func runStop(cmd *cobra.Command, args []string) {
 
 func stopServer(p int) error {
 	pid, err := getPID(p)
+	// Tentamos obter o caminho do arquivo de PID para garantir a limpeza,
+	// mesmo que a leitura do PID falhe.
+	pidFile, pidFileErr := getPIDFilePath(p)
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("nenhum servidor registrado na porta %d", p)
@@ -37,28 +42,18 @@ func stopServer(p int) error {
 		return fmt.Errorf("erro ao ler PID: %w", err)
 	}
 
+	// Sempre tentamos remover o arquivo de PID ao final da execução desta função.
+	if pidFileErr == nil {
+		defer os.Remove(pidFile)
+	}
+
 	process, err := os.FindProcess(pid)
 	if err != nil {
-		pidFile, _ := getPIDFilePath(p)
-		// Processo não encontrado, talvez já tenha sido encerrado. Limpar o arquivo de PID.
-		if pidFile != "" {
-			os.Remove(pidFile)
-		}
-		return fmt.Errorf("processo com PID %d não encontrado: %w", pid, err)
+		return fmt.Errorf("processo com PID %d não encontrado, arquivo de controle limpo: %w", pid, err)
 	}
 
-	pidFile, _ := getPIDFilePath(p) // Get before killing
 	if err := process.Kill(); err != nil {
-		// Mesmo com erro, tenta limpar o arquivo de PID
-		if pidFile != "" {
-			os.Remove(pidFile)
-		}
 		return fmt.Errorf("falha ao encerrar processo com PID %d: %w", pid, err)
-	}
-
-	// Limpa o arquivo de PID após o sucesso
-	if pidFile != "" && os.Remove(pidFile) != nil {
-		return fmt.Errorf("processo encerrado, mas falha ao limpar arquivo de PID: %w", err)
 	}
 
 	return nil
