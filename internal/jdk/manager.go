@@ -73,13 +73,11 @@ func (m *Manager) getJavaVersion(javaPath string) (string, error) {
 	cmd := exec.Command(javaPath, "-version")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("erro ao executar 'java -version': %w
-Output: %s", err, string(output))
+		return "", fmt.Errorf("erro ao executar 'java -version': %w\nOutput: %s", err, string(output))
 	}
 
 	versionOutput := string(output)
-	lines := strings.Split(versionOutput, "
-")
+	lines := strings.Split(versionOutput, "\n")
 	for _, line := range lines {
 		if strings.Contains(line, "version") {
 			parts := strings.Fields(line)
@@ -137,8 +135,7 @@ func (m *Manager) downloadAndInstallJDK(targetDir string) error {
 		return fmt.Errorf("erro ao criar diretório %s: %w", targetDir, err)
 	}
 
-	fmt.Printf("Baixando JDK de: %s
-", downloadURL)
+	fmt.Printf("Baixando JDK de: %s\n", downloadURL)
 	resp, err := http.Get(downloadURL)
 	if err != nil {
 		return fmt.Errorf("erro ao baixar JDK: %w", err)
@@ -175,8 +172,7 @@ func (m *Manager) downloadAndInstallJDK(targetDir string) error {
 		return fmt.Errorf("JDK instalado, mas não foi possível encontrar o executável 'java': %w", err)
 	}
 	m.jdkPath = javaPath
-	fmt.Printf("JDK configurado para usar: %s
-", m.jdkPath)
+	fmt.Printf("JDK configurado para usar: %s\n", m.jdkPath)
 
 	return nil
 }
