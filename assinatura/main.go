@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/gugualves2002/runner/assinatura/cmd"
+	"github.com/kyriosdata/runner/assinatura/cmd"
 )
 
 func main() {

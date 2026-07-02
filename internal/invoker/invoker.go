@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/gugualves2002/runner/internal/jdk"
+	"github.com/kyriosdata/runner/internal/jdk"
 )
 
 // Invoker gerencia a invocação do assinador.jar

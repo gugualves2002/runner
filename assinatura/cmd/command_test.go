@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gugualves2002/runner/assinatura/internal/cli"
+	"github.com/kyriosdata/runner/internal/cli"
 )
 
 func TestRunSign_ReturnsError_WhenServerReturnsBadRequest(t *testing.T) {

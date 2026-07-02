@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/gugualves2002/runner/internal/cli"
+	"github.com/kyriosdata/runner/internal/cli"
 	"github.com/spf13/cobra"
 )
 
