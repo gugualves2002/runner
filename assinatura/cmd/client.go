@@ -48,12 +48,12 @@ func (c *SignatureClient) Post(endpoint string, payload interface{}) ([]byte, er
 	}
 
 	if resp.StatusCode != http.StatusOK {
-	var errorResponse struct {
-		Message string json:"message"
-	}
-	if json.Unmarshal(responseBody, &errorResponse) == nil && errorResponse.Message != "" {
-		return nil, fmt.Errorf("servidor retornou erro (%s): %s", resp.Status, errorResponse.Message)
-	}
+		var errorResponse struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(responseBody, &errorResponse) == nil && errorResponse.Message != "" {
+			return nil, fmt.Errorf("servidor retornou erro (%s): %s", resp.Status, errorResponse.Message)
+		}
 		return nil, fmt.Errorf("servidor retornou erro (%s): %s", resp.Status, string(responseBody))
 	}
 
