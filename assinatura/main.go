@@ -1,9 +1,17 @@
-package main
+﻿package main
 
 import (
-	"github.com/kyriosdata/runner/assinatura/cmd"
+	"log/slog"
+	"os"
+
+	"github.com/gugualves2002/runner/assinatura/cmd"
 )
 
 func main() {
-	cmd.Execute()
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
+	if err := cmd.Execute(); err != nil {
+		slog.Error("falha ao executar CLI", "error", err)
+		os.Exit(1)
+	}
 }
