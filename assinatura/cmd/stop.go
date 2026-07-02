@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -11,22 +12,26 @@ var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Para o assinador.jar em modo servidor",
 	Long:  `Encerra o processo do assinador.jar que está em execução na porta especificada.`,
-	Run:   runStop,
+	RunE:  runStop,
 }
 
 func init() {
 	stopCmd.Flags().IntP("port", "p", 7070, "Porta do servidor a ser parado")
 }
 
-func runStop(cmd *cobra.Command, args []string) {
+func runStop(cmd *cobra.Command, args []string) error {
 	port, err := cmd.Flags().GetInt("port")
-	exitOnError(err)
-	// US-01.8: Interromper execução do assinador.jar
+	if err := flagError(err, "port"); err != nil {
+		return err
+	}
+
+	slog.Info("parando servidor", "port", port)
+
 	if err := stopServer(port); err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao parar o servidor na porta %d: %v\n", port, err)
-		os.Exit(1)
+		return fmt.Errorf("erro ao parar o servidor na porta %d: %w", port, err)
 	}
 	fmt.Printf("Servidor na porta %d parado com sucesso.\n", port)
+	return nil
 }
 
 func stopServer(p int) error {

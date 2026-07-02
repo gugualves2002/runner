@@ -41,13 +41,16 @@ jobs:
         run: mkdir -p dist
 
       - name: Build for Linux amd64
-        run: GOOS=linux GOARCH=amd64 go build -o dist/assinatura-linux-amd64 ./cmd/assinatura
+        working-directory: assinatura
+        run: GOOS=linux GOARCH=amd64 go build -o dist/assinatura-linux-amd64 .
 
       - name: Build for Windows amd64
-        run: GOOS=windows GOARCH=amd64 go build -o dist/assinatura-windows-amd64.exe ./cmd/assinatura
+        working-directory: assinatura
+        run: GOOS=windows GOARCH=amd64 go build -o dist/assinatura-windows-amd64.exe .
 
       - name: Build for macOS amd64
-        run: GOOS=darwin GOARCH=amd64 go build -o dist/assinatura-darwin-amd64 ./cmd/assinatura
+        working-directory: assinatura
+        run: GOOS=darwin GOARCH=amd64 go build -o dist/assinatura-darwin-amd64 .
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

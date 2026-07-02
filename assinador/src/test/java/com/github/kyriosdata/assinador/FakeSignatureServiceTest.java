@@ -3,6 +3,8 @@ package com.kyriosdata.assinador;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Base64;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -123,5 +125,14 @@ class FakeSignatureServiceTest {
         assertThrows(SignatureException.class, () -> {
             service.validate("payload", malformedBase64, "key");
         });
+    }
+
+    @Test
+    void testValidateReturnsFalseWithValidBase64ButInvalidSignature() {
+        String invalidSignature = Base64.getEncoder().encodeToString("NOT_A_FAKE_SIGNATURE".getBytes());
+
+        boolean isValid = service.validate("payload", invalidSignature, "key");
+
+        assertFalse(isValid);
     }
 }

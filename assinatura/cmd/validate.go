@@ -1,10 +1,12 @@
-package cmd
+﻿package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log/slog"
 
+	"github.com/kyriosdata/runner/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +15,7 @@ var validateCmd = &cobra.Command{
 	Short: "Valida uma assinatura digital",
 	Long:  `Envia dados e uma assinatura para o assinador.jar para validação.`,
 	Args:  cobra.ExactArgs(3),
-	Run:   runValidate,
+	RunE:  runValidate,
 }
 
 func init() {
@@ -23,47 +25,51 @@ func init() {
 	validateCmd.Flags().String("alias", "", "Alias do certificado no dispositivo PKCS#11")
 }
 
-func runValidate(cmd *cobra.Command, args []string) {
+func runValidate(cmd *cobra.Command, args []string) error {
 	port, err := cmd.Flags().GetInt("port")
-	exitOnError(err)
+	if err := flagError(err, "port"); err != nil {
+		return err
+	}
 	pkcs11Config, err := cmd.Flags().GetString("pkcs11-config")
-	exitOnError(err)
+	if err := flagError(err, "pkcs11-config"); err != nil {
+		return err
+	}
 	pin, err := cmd.Flags().GetString("pin")
-	exitOnError(err)
+	if err := flagError(err, "pin"); err != nil {
+		return err
+	}
 	alias, err := cmd.Flags().GetString("alias")
-	exitOnError(err)
-
-	requestPayload := struct {
-		Data             string `json:"data"`
-		Signature        string `json:"signature"`
-		Algorithm        string `json:"algorithm"`
-		Pkcs11ConfigPath string `json:"pkcs11ConfigPath,omitempty"`
-		Pin              string `json:"pin,omitempty"`
-		Alias            string `json:"alias,omitempty"`
-	}{
-		Data:             args[0],
-		Signature:        args[1],
-		Algorithm:        args[2],
-		Pkcs11ConfigPath: pkcs11Config,
-		Pin:              pin,
-		Alias:            alias,
+	if err := flagError(err, "alias"); err != nil {
+		return err
 	}
 
-	client := NewSignatureClient(port)
-	responseBody, err := client.Post("/validate", requestPayload)
+	requestPayload := cli.ValidateRequest{
+	Data:             args[0],
+	Signature:        args[1],
+	Algorithm:        args[2],
+	Pkcs11ConfigPath: pkcs11Config,
+	Pin:              pin,
+	Alias:            alias,
+	}
+	if err := requestPayload.Validate(); err != nil {
+		return err
+	}
+
+	slog.Info("executando comando validate", "port", port, "algorithm", requestPayload.Algorithm)
+
+	client := newCLIClient(port)
+	responseBody, err := client.Post(context.Background(), "/validate", requestPayload)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("falha ao validar assinatura: %w", err)
 	}
 
 	var response struct {
 		Valid bool `json:"valid"`
 	}
-
 	if err := json.Unmarshal(responseBody, &response); err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao decodificar resposta do servidor: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("erro ao decodificar resposta do servidor: %w", err)
 	}
 
 	fmt.Printf("Resultado da validação: %t\n", response.Valid)
+	return nil
 }

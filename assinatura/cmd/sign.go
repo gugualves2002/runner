@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log/slog"
 
+	"github.com/kyriosdata/runner/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +15,7 @@ var signCmd = &cobra.Command{
 	Short: "Cria uma assinatura digital (simulada ou real)",
 	Long:  `Envia dados para o assinador.jar para criar uma assinatura.`,
 	Args:  cobra.ExactArgs(2),
-	Run:   runSign,
+	RunE:  runSign,
 }
 
 func init() {
@@ -23,46 +25,51 @@ func init() {
 	signCmd.Flags().String("alias", "", "Alias da chave no dispositivo PKCS#11")
 }
 
-func runSign(cmd *cobra.Command, args []string) {
+func runSign(cmd *cobra.Command, args []string) error {
 	port, err := cmd.Flags().GetInt("port")
-	exitOnError(err)
+	if err := flagError(err, "port"); err != nil {
+		return err
+	}
 	pkcs11Config, err := cmd.Flags().GetString("pkcs11-config")
-	exitOnError(err)
+	if err := flagError(err, "pkcs11-config"); err != nil {
+		return err
+	}
 	pin, err := cmd.Flags().GetString("pin")
-	exitOnError(err)
+	if err := flagError(err, "pin"); err != nil {
+		return err
+	}
 	alias, err := cmd.Flags().GetString("alias")
-	exitOnError(err)
+	if err := flagError(err, "alias"); err != nil {
+		return err
+	}
 
-	requestPayload := struct {
-		Data             string `json:"data"`
-		Algorithm        string `json:"algorithm"`
-		Pkcs11ConfigPath string `json:"pkcs11ConfigPath,omitempty"`
-		Pin              string `json:"pin,omitempty"`
-		Alias            string `json:"alias,omitempty"`
-	}{
+	requestPayload := cli.SignRequest{
 		Data:             args[0],
 		Algorithm:        args[1],
 		Pkcs11ConfigPath: pkcs11Config,
 		Pin:              pin,
 		Alias:            alias,
 	}
+	if err := requestPayload.Validate(); err != nil {
+		return err
+	}
 
-	client := NewSignatureClient(port)
-	responseBody, err := client.Post("/sign", requestPayload)
+	slog.Info("executando comando sign", "port", port, "algorithm", requestPayload.Algorithm)
+
+	client := newCLIClient(port)
+	responseBody, err := client.Post(context.Background(), "/sign", requestPayload)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("falha ao assinar: %w", err)
 	}
 
 	var response struct {
 		Signature string `json:"signature"`
 	}
-
 	if err := json.Unmarshal(responseBody, &response); err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao decodificar resposta do servidor: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("erro ao decodificar resposta do servidor: %w", err)
 	}
 
 	fmt.Println("Assinatura criada com sucesso:")
 	fmt.Println(response.Signature)
+	return nil
 }

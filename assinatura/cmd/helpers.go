@@ -1,13 +1,10 @@
 package cmd
 
-import (
-	"fmt"
-	"os"
-)
+import "fmt"
 
-func exitOnError(err error) {
+func flagError(err error, name string) error {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro fatal ao processar comando: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("falha ao ler flag %s: %w", name, err)
 	}
+	return nil
 }
