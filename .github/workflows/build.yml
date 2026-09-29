@@ -7,28 +7,43 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Test
+  validate:
+    name: Validate and Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necessário para o Gitleaks analisar o histórico
 
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
 
+      # Verificação Estática de Segurança (SAST) executada apenas no Linux para otimização
+      - name: Gitleaks (SAST)
+        uses: gitleaks/gitleaks-action@v2
+        if: matrix.os == 'ubuntu-latest'
+
+      # Verificação Estática de Código (Linting)
+      - name: Golang Linter
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+        if: matrix.os == 'ubuntu-latest'
+
       - name: Run go vet
         run: go vet ./...
 
+      # Verificação Dinâmica (Testes Unitários com Cobertura)
       - name: Run tests
-        run: go test ./...
+        run: go test -v -cover ./...
 
   build:
     name: Build Binaries
-    needs: test
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
