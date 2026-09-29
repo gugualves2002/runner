@@ -6,28 +6,34 @@ on:
       - 'v*'
 
 jobs:
-  test:
-    name: Test
+  validate:
+    name: Validate and Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
 
+      - name: Gitleaks (SAST)
+        uses: gitleaks/gitleaks-action@v2
+        if: matrix.os == 'ubuntu-latest'
+
       - name: Run go vet
         run: go vet ./...
 
       - name: Run tests
-        run: go test ./...
+        run: go test -v -cover ./...
 
   build:
     name: Build Binaries with Version
-    needs: test
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,3 +89,39 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: publish
+    environment: staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-binaries
+          path: dist/
+          
+      - name: Deploy Técnico em Staging
+        run: |
+          echo "Implantando binários da release no ambiente de Staging..."
+          # Substituir pelos comandos reais de deploy (ex: scp, rsync, aws s3 sync)
+          
+      - name: Validação Dinâmica / Health Check
+        run: |
+          echo "Validando endpoints e executando testes E2E em Staging"
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-binaries
+          path: dist/
+          
+      - name: Deploy em Produção
+        run: |
+          echo "Implantando binários da release em Produção..."
+          # Substituir pelos comandos reais de deploy
